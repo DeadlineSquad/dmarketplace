@@ -32,6 +32,6 @@
 ### Interact from frontend
 
 - install metamask extension: https://metamask.io/download/
-- host file `index.html` di localhost, bisa menggunakan `live-server` atau `http-server`
+- host file `index.html` di localhost, bisa menggunakan [live-server](https://github.com/ritwickdey/vscode-live-server-plus-plus), `http-server` atau yang lainnya
 - buka browser, buka console, dan coba interact dengan smart contracts
   ![alt text](images/fe.png)
