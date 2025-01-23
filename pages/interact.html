@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Contract Interaction</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 text-gray-800">
+    <div class="container mx-auto py-10">
+      <h1 class="text-2xl font-bold text-center mb-8">
+        Smart Contract Interaction
+      </h1>
+
+      <!-- Form Register Product -->
+      <div class="p-6 bg-white rounded shadow-md mb-8">
+        <div>
+          <div id="provider"></div>
+          <div id="chainId"></div>
+          <div id="latestBlock"></div>
+          <div id="connectedAccount"></div>
+          <div id="warn" style="color: red"></div>
+          <button
+            id="requestAccounts"
+            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
+          >
+            Connect Wallet
+          </button>
+        </div>
+      </div>
+      <!-- Form Register Product -->
+      <div class="p-6 bg-white rounded shadow-md mb-8">
+        <h2 class="text-lg font-bold">Register Product</h2>
+        <div class="flex gap-4">
+          <input
+            id="productNameInput"
+            type="text"
+            class="border border-gray-300 rounded px-4 py-2 w-full"
+            placeholder="Enter product name"
+          />
+          <input
+            id="productDescriptionInput"
+            type="text"
+            class="border border-gray-300 rounded px-4 py-2 w-full"
+            placeholder="Enter product description"
+          />
+          <input
+            id="productPriceInput"
+            type="number"
+            class="border border-gray-300 rounded px-4 py-2 w-full"
+            placeholder="Enter product price (in wei)"
+          />
+          <button
+            id="registerProductButton"
+            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+          >
+            Register Product
+          </button>
+        </div>
+      </div>
+
+      <!-- Input product id -->
+      <div class="p-6 bg-white rounded shadow-md mb-8">
+        <h2 class="text-lg font-bold">Product ID</h2>
+        <div class="flex gap-4">
+          <input
+            id="productIdInput"
+            type="number"
+            class="border border-gray-300 rounded px-4 py-2 w-full"
+            placeholder="Enter product ID"
+          />
+          <button
+            id="loadProductButton"
+            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+          >
+            Load Product
+          </button>
+        </div>
+      </div>
+
+      <!-- Display product details -->
+      <div id="productDetails" class="p-6 bg-white rounded shadow-md mb-8">
+        <h2 class="text-lg font-bold">Product Details</h2>
+        <p>
+          <strong>Product ID:</strong> <span id="productId">Loading...</span>
+        </p>
+        <p><strong>Name:</strong> <span id="productName">Loading...</span></p>
+        <p>
+          <strong>Description:</strong>
+          <span id="productDescription">Loading...</span>
+        </p>
+        <p>
+          <strong>Price (Wei):</strong>
+          <span id="productPrice">Loading...</span>
+        </p>
+        <p>
+          <strong>Seller:</strong> <span id="productOwner">Loading...</span>
+        </p>
+
+        <hr class="my-4" />
+
+        <button
+          id="purchaseButton"
+          class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+          disabled
+        >
+          Purchase Product
+        </button>
+      </div>
+    </div>
+
+    <script type="module">
+      // ensure that there is an injected the Ethereum provider
+      if (window.ethereum) {
+        // use the injected Ethereum provider to initialize Web3.js
+        const web3 = new Web3(window.ethereum);
+
+        // check if Ethereum provider comes from MetaMask
+        if (window.ethereum.isMetaMask) {
+          document.getElementById("provider").innerText =
+            "Connected to Ethereum with MetaMask.";
+
+          //   // remove the "Connect Wallet" button
+          //   document.getElementById("requestAccounts").style.display = "none";
+          //   // enable the "Purchase Product" button
+          //   document.getElementById("purchaseButton").disabled = false;
+
+          //   // innerHTML connected account
+          //   const accounts = await web3.eth.getAccounts();
+          //   document.getElementById(
+          //     "connectedAccount"
+          //   ).innerText = `Account: ${accounts[0]}`;
+        } else {
+          document.getElementById("provider").innerText =
+            "Non-MetaMask Ethereum provider detected.";
+        }
+
+        // get chain ID and populate placeholder
+        document.getElementById(
+          "chainId"
+        ).innerText = `Chain ID: ${await web3.eth.getChainId()}`;
+        // get latest block and populate placeholder
+        document.getElementById(
+          "latestBlock"
+        ).innerText = `Latest Block: ${await web3.eth.getBlockNumber()}`;
+
+        // subscribe to new blocks and update UI when a new block is created
+        const blockSubscription = await web3.eth.subscribe("newBlockHeaders");
+        blockSubscription.on("data", (block) => {
+          document.getElementById(
+            "latestBlock"
+          ).innerText = `Latest Block: ${block.number}`;
+        });
+
+        // click event for "Request MetaMask Accounts" button
+        document
+          .getElementById("requestAccounts")
+          .addEventListener("click", async () => {
+            // request accounts from MetaMask
+            await window.ethereum.request({ method: "eth_requestAccounts" });
+            document.getElementById("requestAccounts").style.display = "none";
+
+            // get list of accounts
+            const accounts = await web3.eth.getAccounts();
+            // get the first account and populate placeholder
+            document.getElementById(
+              "connectedAccount"
+            ).innerText = `Account: ${accounts[0]}`;
+
+            // enable the "Purchase Product" button
+            document.getElementById("purchaseButton").disabled = false;
+          });
+
+        const RPC_URL = "https://rpc-sepolia.rockx.com"; // Replace with your RPC URL
+        const CONTRACT_ADDRESS = "0x70Ff98638f4a239e1b685B646b77Ad8d650B6999"; // Replace with your contract address
+        const ABI = JSON.stringify([
+          {
+            anonymous: false,
+            inputs: [
+              {
+                indexed: false,
+                internalType: "uint256",
+                name: "id",
+                type: "uint256",
+              },
+              {
+                indexed: false,
+                internalType: "address",
+                name: "buyer",
+                type: "address",
+              },
+            ],
+            name: "ProductPurchased",
+            type: "event",
+          },
+          {
+            anonymous: false,
+            inputs: [
+              {
+                indexed: false,
+                internalType: "uint256",
+                name: "id",
+                type: "uint256",
+              },
+              {
+                indexed: false,
+                internalType: "string",
+                name: "name",
+                type: "string",
+              },
+              {
+                indexed: false,
+                internalType: "uint256",
+                name: "price",
+                type: "uint256",
+              },
+              {
+                indexed: false,
+                internalType: "address",
+                name: "seller",
+                type: "address",
+              },
+            ],
+            name: "ProductRegistered",
+            type: "event",
+          },
+          {
+            inputs: [
+              {
+                internalType: "uint256",
+                name: "_id",
+                type: "uint256",
+              },
+            ],
+            name: "getProduct",
+            outputs: [
+              {
+                internalType: "uint256",
+                name: "",
+                type: "uint256",
+              },
+              {
+                internalType: "string",
+                name: "",
+                type: "string",
+              },
+              {
+                internalType: "string",
+                name: "",
+                type: "string",
+              },
+              {
+                internalType: "uint256",
+                name: "",
+                type: "uint256",
+              },
+              {
+                internalType: "address",
+                name: "",
+                type: "address",
+              },
+              {
+                internalType: "bool",
+                name: "",
+                type: "bool",
+              },
+            ],
+            stateMutability: "view",
+            type: "function",
+          },
+          {
+            inputs: [],
+            name: "productCount",
+            outputs: [
+              {
+                internalType: "uint256",
+                name: "",
+                type: "uint256",
+              },
+            ],
+            stateMutability: "view",
+            type: "function",
+          },
+          {
+            inputs: [
+              {
+                internalType: "uint256",
+                name: "",
+                type: "uint256",
+              },
+            ],
+            name: "products",
+            outputs: [
+              {
+                internalType: "uint256",
+                name: "id",
+                type: "uint256",
+              },
+              {
+                internalType: "string",
+                name: "name",
+                type: "string",
+              },
+              {
+                internalType: "string",
+                name: "description",
+                type: "string",
+              },
+              {
+                internalType: "uint256",
+                name: "price",
+                type: "uint256",
+              },
+              {
+                internalType: "address payable",
+                name: "seller",
+                type: "address",
+              },
+              {
+                internalType: "bool",
+                name: "isSold",
+                type: "bool",
+              },
+            ],
+            stateMutability: "view",
+            type: "function",
+          },
+          {
+            inputs: [
+              {
+                internalType: "uint256",
+                name: "_id",
+                type: "uint256",
+              },
+            ],
+            name: "purchaseProduct",
+            outputs: [],
+            stateMutability: "payable",
+            type: "function",
+          },
+          {
+            inputs: [
+              {
+                internalType: "string",
+                name: "_name",
+                type: "string",
+              },
+              {
+                internalType: "string",
+                name: "_description",
+                type: "string",
+              },
+              {
+                internalType: "uint256",
+                name: "_price",
+                type: "uint256",
+              },
+            ],
+            name: "registerProduct",
+            outputs: [],
+            stateMutability: "nonpayable",
+            type: "function",
+          },
+        ]); // Replace with your ABI as a JSON string
+
+        const contract = new web3.eth.Contract(
+          JSON.parse(ABI),
+          CONTRACT_ADDRESS
+        );
+
+        // initial product id load
+        const productId = await contract.methods.productCount().call();
+        document.getElementById("productIdInput").value = productId;
+
+        const loadProductDetails = async () => {
+          try {
+            const productId = document.getElementById("productIdInput").value;
+            const product = await contract.methods.getProduct(productId).call();
+            console.log(product);
+            // Update the UI with product details
+            document.getElementById("productId").textContent = productId;
+            document.getElementById("productName").textContent = product[1];
+            document.getElementById("productDescription").textContent =
+              product[2];
+            document.getElementById("productPrice").textContent = product[3];
+            document.getElementById("productOwner").textContent = product[4];
+          } catch (error) {
+            console.error("Error loading product details:", error);
+          }
+        };
+
+        document
+          .getElementById("loadProductButton")
+          .addEventListener("click", loadProductDetails);
+
+        const purchaseProduct = async () => {
+          try {
+            const account = (await web3.eth.getAccounts())[0];
+
+            const productId = await contract.methods.productCount().call();
+            const product = await contract.methods.getProduct(productId).call();
+
+            await contract.methods.purchaseProduct(productId).send({
+              from: account,
+              value: product.price,
+              gas: 3000000,
+            });
+
+            alert("Product purchased successfully!");
+            await loadProductDetails(); // Refresh the product details after purchase
+          } catch (error) {
+            console.error("Error purchasing product:", error);
+            alert("An error occurred. See console for details.");
+          }
+        };
+
+        document
+          .getElementById("purchaseButton")
+          .addEventListener("click", purchaseProduct);
+
+        // Load product details on page load
+        await loadProductDetails();
+
+        // register product
+        document
+          .getElementById("registerProductButton")
+          .addEventListener("click", async () => {
+            try {
+              const productName =
+                document.getElementById("productNameInput").value;
+              const productDescription = document.getElementById(
+                "productDescriptionInput"
+              ).value;
+              const productPrice =
+                document.getElementById("productPriceInput").value;
+
+              const account = (await web3.eth.getAccounts())[0];
+
+              await contract.methods
+                .registerProduct(productName, productDescription, productPrice)
+                .send({
+                  from: account,
+                  gas: 3000000,
+                });
+
+              alert("Product registered successfully!");
+              await loadProductDetails(); // Refresh the product details after registration
+            } catch (error) {
+              console.error("Error registering product:", error);
+              alert("An error occurred. See console for details.");
+            }
+          });
+      } else {
+        // no Ethereum provider - instruct user to install MetaMask
+        document.getElementById("warn").innerHTML =
+          "Please <a href='https://metamask.io/download/'>install MetaMask</a>.";
+        document.getElementById("requestAccounts").disabled = true;
+      }
+    </script>
+  </body>
+</html>
