@@ -4,6 +4,12 @@
 
 ## Guide
 
+### Configuration
+
+- Pastikan sudah menginstall nodejs dan npm
+- Pastikan sudah menginstall metamask extension di browser
+- sesuaikan `WALLET_PRIVATE_KEY` dan `WALLET_PRIVATE_KEY_BUYER` di file `./scripts/constants.js` dengan private key wallet yang akan digunakan, [cek tutorial](https://support.metamask.io/configure/accounts/how-to-export-an-accounts-private-key/).
+
 ### Deployment & Interact test
 
 - `npm i`
